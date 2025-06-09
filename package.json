@@ -1,0 +1,25 @@
+{
+  "name": "learning-management-system",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "nodemon -e js,ejs",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Vinayak <srivinayakg2005@gmail.com>",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "connect-ensure-login": "^0.1.1",
+    "connect-flash": "^0.1.1",
+    "cookie-parser": "^1.4.7",
+    "ejs": "^3.1.10",
+    "express": "^5.1.0",
+    "express-session": "^1.18.1",
+    "nodemon": "^3.1.10",
+    "passport": "^0.7.0",
+    "passport-local": "^1.0.0",
+    "tiny-csrf": "^1.1.6"
+  }
+}
