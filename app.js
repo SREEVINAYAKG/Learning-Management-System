@@ -58,6 +58,7 @@ app.get("/signup",(request,response)=>{
   response.render("signup",{title:"Sign Up",csrfToken:request.csrfToken()})
 });
 
+
 app.post("/session", (req, res) => {
   console.log("CSRF passed. Body:", req.body);
   res.send("CSRF OK");

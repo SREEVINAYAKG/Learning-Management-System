@@ -4,7 +4,8 @@
   "main": "index.js",
   "scripts": {
     "start": "nodemon -e js,ejs",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest",
+    "prepare": "husky"
   },
   "author": "Vinayak <srivinayakg2005@gmail.com>",
   "license": "ISC",
@@ -21,5 +22,9 @@
     "passport": "^0.7.0",
     "passport-local": "^1.0.0",
     "tiny-csrf": "^1.1.6"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "jest": "^30.0.0"
   }
 }
