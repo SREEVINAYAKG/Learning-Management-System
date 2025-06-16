@@ -9,9 +9,10 @@
 </head>
 <body>
         <div class="grid grid-cols-6">
+        <div class="col-start-1 col-span-6">
+            <%- include('header.ejs')%>
+      </div>
       <div class="col-start-3 col-span-2">
-        <%- include('header.ejs')%>
-
         <h6 class="py-4">Signup as a new user</h6>
         <form action="/users" method="post">
             <input type="hidden" name="_csrf" value="<%=csrfToken%>">

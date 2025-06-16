@@ -6,7 +6,7 @@
 //     })
 // })
 
-const { sequelize, User } = require('../models'); // adjust if models/index.js is elsewhere
+const { sequelize, User } = require('../models');
 
 beforeAll(async () => {
   await sequelize.sync({ force: true }); // reset test DB
@@ -62,7 +62,7 @@ describe('User Model', () => {
   test('should fail to create a user with invalid role', async () => {
     try {
       await User.create({
-        role: 'admin', // not allowed if you use isIn validation
+        role: 'admin',
         firstName: 'Fake',
         lastName: 'User',
         email: 'fake@example.com',
@@ -71,7 +71,7 @@ describe('User Model', () => {
     } catch (err) {
       expect(err).toBeInstanceOf(Error);
       const messages = err.errors.map(e => e.message);
-      expect(messages).toContain('Validation isIn on role failed');
+      expect(messages).toContain('Validation on role failed');
     }
   });
 });

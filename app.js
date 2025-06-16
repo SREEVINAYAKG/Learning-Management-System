@@ -20,6 +20,8 @@ app.use(cookieParser('shh! some secret thing'))
 
 app.use(session({
   secret:"my-super-secret-key-21728176152478952",
+  resave: false,
+  saveUninitialized: false,
   cookie:{
     maxAge:24*60*60*1000
   }
@@ -47,11 +49,11 @@ passport.use('local', new localStrategy(
   function(email, password, done) {
     User.findOne({where:{ email: email }}).then(async(user)=>{
       if (!user) {
-        return done(null, false, { message: 'Incorrect email.' });
+        return done(null, false, { message: 'User with given email not found,sign up first.' });
       }
-      // if(!user.validPassword(password)){
-      //   return done(null, false, { message: 'Incorrect  password.' });
-      // }
+      if(user.password!==password){
+        return done(null, false, { message: 'Incorrect  password.' });
+      }
       if(user.role==='educator'){
         return done(null,user,{role:"educator"});
       }
@@ -104,16 +106,18 @@ app.get("/", (request, response) => {
 
     return response.render("index", 
         { title: "Home Page" ,
+          name:"",
+          dashboard:'',
         csrfToken:request.csrfToken()
         });
 })
 
 app.get("/login",(request,response)=>{
-  response.render("login",{title:"Login",csrfToken:request.csrfToken()});
+  response.render("login",{title:"Login",name:"",dashboard:'',csrfToken:request.csrfToken()});
 });
 
 app.get("/signup",(request,response)=>{
-  response.render("signup",{title:"Sign Up",csrfToken:request.csrfToken()})
+  response.render("signup",{title:"Sign Up",name:"",dashboard:'',csrfToken:request.csrfToken()})
 });
 
 app.post("/users",async(request,response)=>{
@@ -160,11 +164,14 @@ app.post("/session",
       return res.redirect('/login');
     }
 });
-app.get("/educator_dashboard",(req,res)=>{
+app.get("/educator_dashboard",
+  connectEnsureLogin.ensureLoggedIn(),(req,res)=>{
   try{
     res.render('educator_dashboard',{
       csrfToken:req.csrfToken(),
-      title:'educator'
+      title:'educator',
+      name:req.user.firstName + " " + req.user.lastName,
+      dashboard:'-Educator Dashboard'
     });
   }catch(err){
     console.log(err);
@@ -174,11 +181,40 @@ app.get("/student_dashboard",(req,res)=>{
   try{
     res.render('student_dashboard',{
       csrfToken:req.csrfToken(),
-      title:'student'
+      title:'student',
+      name:req.user.firstName + " " + req.user.lastName,
+      dashboard:'-Student Dashboard'
     });
   }catch(err){
     console.log(err);
   }
-})
+});
+
+app.get('/educator_dashboard/create_course', connectEnsureLogin.ensureLoggedIn(), (req, res) => {
+  try{
+    res.render('create_course',{
+      csrfToken:req.csrfToken(),
+      title:'create_course',
+      name:req.user.firstName + " " + req.user.lastName,
+      dashboard:'-Create Course'
+
+    });
+  }catch(err){
+    console.log(err);
+  }
+});
+
+app.get("/signout", (req, res, next) => {
+  req.logout((err) => {
+    if (err) {
+      return next(err);
+    }
+    req.session.destroy(() => {
+      res.clearCookie("connect.sid");
+      res.redirect("/login");
+    });
+  });
+});
+
 
 module.exports = app;
