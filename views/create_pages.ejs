@@ -8,7 +8,7 @@
     <title><%=title%></title>
 </head>
 <body>
-    <div class="grid grid-cols-6 grid-rows-6">
+    <div class="grid grid-cols-6 grid-rows-10">
     <div class="col-start-1 col-span-6">
         <%- include('header.ejs')%>
     </div>
@@ -18,18 +18,19 @@
     </div>
     <div class="col-start-6 row-start-2 col-span-1 text-center px-2">
         <a href="/signout" class="text-red-500">Sign out</a>
-      </div>
-      <div class="col-start-2 row-start-3 col-span-4 row-span-4">
-        <form action="/educator_dashboard/create_course" method="POST">
+    </div>
+         <div class="col-start-2 row-start-3 col-span-4 row-span-8">
+        <form action="/educator_dashboard/<%= chapterId %>/pages/new" method="POST">
             <input type="hidden" name="_csrf" value="<%=csrfToken%>">
-            <label for="course_name">Course Name</label>
-            <input type="text" placeholder='enter course name' name="course_name" class="border border-gray-300 text-gray-900 rounded w-full p-2"><br><br>
-            <label for="course_description">Course Description</label>
-            <textarea name="course_description" placeholder='enter course description' class="border border-gray-300 text-gray-900 rounded w-full h-32 p-2"></textarea><br><br>
+            <label for="page_title">Page Title</label>
+            <input type="text" placeholder='enter page title' name="page_title" class="border border-gray-300 text-gray-900 rounded w-full p-2"><br><br>
+            <label for="page_content">Page Content</label>
+            <textarea name="page_content" placeholder='enter page content' class="border border-gray-300 text-gray-900 rounded w-full h-32 p-2"></textarea><br><br>
             <button type="submit" class="p-2 bg-yellow-200 border rounded hover:bg-yellow-400 cursor-pointer">Submit</button>
         </form>
 
       </div>
+
     </div>
         
     </body>

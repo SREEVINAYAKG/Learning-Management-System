@@ -13,7 +13,7 @@ const bcrypt = require('bcrypt');
 const saltRounds = 10;
 
 
-const{User} = require('./models');
+const {User,Courses,Chapters,Pages} = require('./models');
 app.set("view engine","ejs");
 
 app.use(cookieParser('shh! some secret thing'))
@@ -165,13 +165,19 @@ app.post("/session",
     }
 });
 app.get("/educator_dashboard",
-  connectEnsureLogin.ensureLoggedIn(),(req,res)=>{
+  connectEnsureLogin.ensureLoggedIn(),async(req,res)=>{
   try{
+        const courses = await Courses.findAll({
+        where: { userId: req.user.id }
+      });
+      
+    console.log("Fetched courses:", courses); 
     res.render('educator_dashboard',{
       csrfToken:req.csrfToken(),
       title:'educator',
       name:req.user.firstName + " " + req.user.lastName,
-      dashboard:'-Educator Dashboard'
+      dashboard:'-Educator Dashboard',
+      courses: courses
     });
   }catch(err){
     console.log(err);
@@ -183,7 +189,7 @@ app.get("/student_dashboard",(req,res)=>{
       csrfToken:req.csrfToken(),
       title:'student',
       name:req.user.firstName + " " + req.user.lastName,
-      dashboard:'-Student Dashboard'
+      dashboard:'-Student Dashboard',
     });
   }catch(err){
     console.log(err);
@@ -204,6 +210,21 @@ app.get('/educator_dashboard/create_course', connectEnsureLogin.ensureLoggedIn()
   }
 });
 
+app.post('/educator_dashboard/create_course', connectEnsureLogin.ensureLoggedIn(), async (req, res) => {
+  try{
+      console.log("BODY:", req.body);
+      await Courses.create({
+      courseName: req.body.course_name,
+      courseDescription: req.body.course_description,
+      userId: req.user.id
+    });
+    res.redirect('/educator_dashboard');
+  }catch(err){
+    console.log("BODY:", req.body);
+    console.log(err);
+  }
+})
+
 app.get("/signout", (req, res, next) => {
   req.logout((err) => {
     if (err) {
@@ -216,5 +237,95 @@ app.get("/signout", (req, res, next) => {
   });
 });
 
+
+app.get(`/educator_dashboard/:courseId/chapter/new`, connectEnsureLogin.ensureLoggedIn(), (req, res) => {
+  try {
+    res.render('new_chapter', {
+      csrfToken: req.csrfToken(),
+      title: 'New Chapter',
+      name: req.user.firstName + " " + req.user.lastName,
+      dashboard: '-New Chapter',
+      courseId: req.params.courseId
+    });
+  } catch (err) {
+    console.log(err);
+  }
+});
+
+app.post(`/educator_dashboard/:courseId/chapter/new`, connectEnsureLogin.ensureLoggedIn(), async (req, res) => {
+  try {
+    console.log("BODY:", req.body);
+    await Chapters.create({
+      chapterName: req.body.chapter_name,
+      chapterDescription: req.body.chapter_description,
+      courseId: req.params.courseId
+    });
+    res.redirect(`/educator_dashboard/${req.params.courseId}`);
+  } catch (err) {
+    console.log("BODY:", req.body);
+    console.log(err);
+  }
+})
+app.get('/educator_dashboard/:courseId', connectEnsureLogin.ensureLoggedIn(), async (req, res) => {
+  try {
+    const chapters = await Chapters.findAll({
+      where: { courseId: req.params.courseId }
+    });
+    res.render('educator_dashboard_chapters', {
+      csrfToken: req.csrfToken(),
+      title: 'Course Chapters',
+      name: req.user.firstName + " " + req.user.lastName,
+      dashboard: '-Course Chapters',
+      chapters: chapters
+    });
+  } catch (err) {
+    console.log(err);
+  }
+});
+
+app.post(`/educator_dashboard/:chapterId/pages/new`,connectEnsureLogin.ensureLoggedIn(), async (req, res) => {
+  try {
+    console.log("BODY:", req.body);
+    await Pages.create({
+      pageTitle: req.body.page_title,
+      pageCotent: req.body.page_content,
+      chapterId: req.params.chapterId
+    });
+    res.redirect(`/educator_dashboard/${req.params.chapterId}/pages`);
+  } catch (err) {
+    console.log("BODY:", req.body);
+    console.log(err);
+  }
+});
+
+app.get(`/educator_dashboard/:chapterId/page/new`, connectEnsureLogin.ensureLoggedIn(), (req, res) => {
+  try {
+    res.render('create_pages', {
+      csrfToken: req.csrfToken(),
+      title: 'Chapter Pages',
+      name: req.user.firstName + " " + req.user.lastName,
+      dashboard: '-Chapter Pages',
+      chapterId: req.params.chapterId
+    });
+  } catch (err) {
+    console.log(err);
+  }
+});
+app.get(`/educator_dashboard/:chapterId/pages`, connectEnsureLogin.ensureLoggedIn(), async (req, res) => {
+  try {
+    const pages = await Pages.findAll({
+      where: { chapterId: req.params.chapterId }
+    });
+    res.render('educator_dashboard_pages', {
+      csrfToken: req.csrfToken(),
+      title: 'Chapter Pages',
+      name: req.user.firstName + " " + req.user.lastName,
+      dashboard: '-Chapter Pages',
+      pages: pages
+    });
+  } catch (err) {
+    console.log(err);
+  }
+})
 
 module.exports = app;
