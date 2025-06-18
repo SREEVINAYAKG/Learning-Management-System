@@ -220,7 +220,7 @@ app.post('/educator_dashboard/create_course', connectEnsureLogin.ensureLoggedIn(
     });
     res.redirect('/educator_dashboard');
   }catch(err){
-    console.log("BODY:", req.body);
+    // console.log("BODY:", req.body);
     console.log(err);
   }
 })
@@ -262,7 +262,7 @@ app.post(`/educator_dashboard/:courseId/chapter/new`, connectEnsureLogin.ensureL
     });
     res.redirect(`/educator_dashboard/${req.params.courseId}`);
   } catch (err) {
-    console.log("BODY:", req.body);
+    // console.log("BODY:", req.body);
     console.log(err);
   }
 })
@@ -288,12 +288,12 @@ app.post(`/educator_dashboard/:chapterId/pages/new`,connectEnsureLogin.ensureLog
     console.log("BODY:", req.body);
     await Pages.create({
       pageTitle: req.body.page_title,
-      pageCotent: req.body.page_content,
+      pageCotent: req.body.page_content, //typo error content in db table.
       chapterId: req.params.chapterId
     });
     res.redirect(`/educator_dashboard/${req.params.chapterId}/pages`);
   } catch (err) {
-    console.log("BODY:", req.body);
+    // console.log("BODY:", req.body);
     console.log(err);
   }
 });
@@ -316,12 +316,14 @@ app.get(`/educator_dashboard/:chapterId/pages`, connectEnsureLogin.ensureLoggedI
     const pages = await Pages.findAll({
       where: { chapterId: req.params.chapterId }
     });
+
     res.render('educator_dashboard_pages', {
       csrfToken: req.csrfToken(),
       title: 'Chapter Pages',
       name: req.user.firstName + " " + req.user.lastName,
       dashboard: '-Chapter Pages',
       pages: pages
+
     });
   } catch (err) {
     console.log(err);
