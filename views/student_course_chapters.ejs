@@ -14,11 +14,12 @@
     </div>
     <div class="col-start-1 col-span-6 row-start-2">
       <h2 class="text-2xl font-semibold pl-2 text-gray-600">Welcome <%=name%></h2>
-      <a href="/educator_dashboard" class="px-3 text-blue-800">Dashboard</a>
+      <a href="/student_dashboard" class="px-3 text-blue-800">Dashboard</a>
     </div>
 
     <div class='col-start-1 col-span-6 row-start-4'>
-      <h1 class="text-3xl font-semibold text-gray-600 text-center"> Chapters</h1>
+      <h1 class="text-3xl font-semibold text-gray-600 text-center">Course:<strong class="text-blue-400"> <%= course.courseName %></strong>  </h1>
+      <h3 class="text-2xl font-semibold text-gray-600 text-center">Educator: <strong><%= educator.firstName %> <%= educator.lastName %></strong></h3>
       </div>
 
   <div class="col-start-1 col-span-6 row-start-6 row-span-3 px-10 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
@@ -27,9 +28,7 @@
     <div class="border border-gray-300 p-4 rounded-lg shadow bg-white">
       <h3 class="text-lg font-bold text-blue-800 mb-2"><%= chapter.chapterName %></h3>
       <p class="text-gray-700 mb-2"><%= chapter.chapterDescription %></p>
-      <!-- <a href="#"><button class="bg-blue-400 text-white font-bold p-2 m-2 rounded hover:cursor-pointer hover:bg-blue-600" >edit chapter</button></a> -->
-      <a href="/educator_dashboard/<%= chapter.id %>/page/new"><button class="bg-blue-400 text-white font-bold p-2 rounded hover:cursor-pointer hover:bg-blue-600" >Add pages</button></a>
-      <a href="/educator_dashboard/<%=chapter.id%>/pages"><button class="bg-blue-400 text-white font-bold p-2 m-2 rounded hover:cursor-pointer hover:bg-blue-600" >View pages</button></a>
+      <a href="#"><button class="bg-blue-400 text-white font-bold p-2 m-2 rounded hover:cursor-pointer hover:bg-blue-600" >View pages</button></a>
     </div>
   <% }) %>
   <%}else{%>
@@ -47,3 +46,37 @@
   
     </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <!-- <div class="col-start-1 col-span-6 row-start-4">
+      <h1>Chapters in <%= course.courseName %></h1>
+      <h3>Educator: <%= educator.firstName %> <%= educator.lastName %></h3>
+
+<ul>
+  <% chapters.forEach(ch => { %>
+    <li><strong><%= ch.chapterName %></strong></li>
+    <li><strong><%= ch.chapterDescription%></strong></li>
+  <% }) %>
+</ul> -->
+
+

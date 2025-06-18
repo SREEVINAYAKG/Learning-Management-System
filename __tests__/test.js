@@ -1,10 +1,11 @@
-// const db = require('../models');
+const db = require('../models');
 
-// describe('first test suite',()=>{
-//     test('demo',()=>{
-//         expect(true).toBe(true);
-//     })
-// })
+describe('first test suite',()=>{
+    test('demo',()=>{
+        expect(true).toBe(true);
+    })
+})
+
 
 const { sequelize, User } = require('../models');
 
@@ -75,3 +76,8 @@ describe('User Model', () => {
     }
   });
 });
+
+
+
+
+

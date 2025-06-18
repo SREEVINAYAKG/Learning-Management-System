@@ -13,7 +13,7 @@ const bcrypt = require('bcrypt');
 const saltRounds = 10;
 
 
-const {User,Courses,Chapters,Pages} = require('./models');
+const {User,Courses,Chapters,Pages,Enrollments} = require('./models');
 app.set("view engine","ejs");
 
 app.use(cookieParser('shh! some secret thing'))
@@ -40,6 +40,8 @@ app.use(function(request, response, next) {
     response.locals.messages = request.flash();
     next();
 });
+
+const { Op } = require('sequelize');
 
 
 //loaclStratergy
@@ -129,14 +131,14 @@ app.post("/users",async(request,response)=>{
       email:request.body.email,
       password:request.body.password
     });
-    request.login(user,(err)=>{
-      if(err){
+    request.login(user,(error)=>{
+      if(error){
         console.log(error);
       }
       if(user.role === 'educator'){
         response.redirect('/educator_dashboard');
       }
-      if(user.role === 'student'){
+      else if(user.role === 'student'){
         response.redirect('/student_dashboard');
       }
       else{
@@ -145,6 +147,7 @@ app.post("/users",async(request,response)=>{
     })
   }catch(err){
     console.log(err);
+    return response.status(500).send("Signup failed");
   }
 })
 
@@ -164,8 +167,27 @@ app.post("/session",
       return res.redirect('/login');
     }
 });
+
+
+
+function ensureEducator(req, res, next) {
+  if (req.isAuthenticated() && req.user.role === 'educator') {
+    return next();
+  }
+  return res.status(403).send('Access Denied');
+}
+function ensureStudent(req, res, next) {
+  if (req.isAuthenticated() && req.user.role === 'student') {
+    return next();
+  }
+  return res.status(403).send('Access Denied');
+}
+
+
+
+
 app.get("/educator_dashboard",
-  connectEnsureLogin.ensureLoggedIn(),async(req,res)=>{
+  ensureEducator,async(req,res)=>{
   try{
         const courses = await Courses.findAll({
         where: { userId: req.user.id }
@@ -183,20 +205,72 @@ app.get("/educator_dashboard",
     console.log(err);
   }
 });
-app.get("/student_dashboard",(req,res)=>{
-  try{
-    res.render('student_dashboard',{
+// app.get("/student_dashboard",connectEnsureLogin.ensureLoggedIn(),async(req,res)=>{
+//   try{
+//     const courses = await Courses.findAll(
+//       {
+//       include: [{
+//         model: User,
+//         attributes: ['firstName', 'lastName'], // Only educator name
+//       }],
+//     }
+//     );
+//     res.render('student_dashboard',{
+//       csrfToken:req.csrfToken(),
+//       title:'student',
+//       name:req.user.firstName + " " + req.user.lastName,
+//       dashboard:'-Student Dashboard',
+//       courses: courses,
+//       enrolls:'hello'
+//     });
+//   }catch(err){
+//     console.log(err);
+//   }
+// });
+
+
+app.get('/student_dashboard', ensureStudent,async (req, res) => {
+  try {
+    // Get enrolled courses
+    const student = await User.findByPk(req.user.id, {
+      include: [{
+        model: Courses,
+        as: 'EnrolledCourses',
+        include: [{ model: User, attributes: ['firstName', 'lastName'] }] // educator
+      }]
+    });
+
+    // Get all available courses (for preview), excluding already enrolled
+    const enrolledCourseIds = student.EnrolledCourses.map(c => c.id);
+
+    const otherCourses = await Courses.findAll({
+      where: {
+        id: { [Op.notIn]: enrolledCourseIds }
+      },
+      include: [{ model: User, attributes: ['firstName', 'lastName'] }]
+    });
+
+    res.render('student_dashboard', {
+
       csrfToken:req.csrfToken(),
       title:'student',
       name:req.user.firstName + " " + req.user.lastName,
       dashboard:'-Student Dashboard',
+      enrolledCourses: student.EnrolledCourses,
+      otherCourses,
+      enrolledCourseIds
     });
-  }catch(err){
-    console.log(err);
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Error loading dashboard");
   }
 });
 
-app.get('/educator_dashboard/create_course', connectEnsureLogin.ensureLoggedIn(), (req, res) => {
+
+
+
+app.get('/educator_dashboard/create_course', ensureEducator, (req, res) => {
   try{
     res.render('create_course',{
       csrfToken:req.csrfToken(),
@@ -210,7 +284,7 @@ app.get('/educator_dashboard/create_course', connectEnsureLogin.ensureLoggedIn()
   }
 });
 
-app.post('/educator_dashboard/create_course', connectEnsureLogin.ensureLoggedIn(), async (req, res) => {
+app.post('/educator_dashboard/create_course', ensureEducator, async (req, res) => {
   try{
       console.log("BODY:", req.body);
       await Courses.create({
@@ -238,7 +312,7 @@ app.get("/signout", (req, res, next) => {
 });
 
 
-app.get(`/educator_dashboard/:courseId/chapter/new`, connectEnsureLogin.ensureLoggedIn(), (req, res) => {
+app.get(`/educator_dashboard/:courseId/chapter/new`, ensureEducator, (req, res) => {
   try {
     res.render('new_chapter', {
       csrfToken: req.csrfToken(),
@@ -252,7 +326,7 @@ app.get(`/educator_dashboard/:courseId/chapter/new`, connectEnsureLogin.ensureLo
   }
 });
 
-app.post(`/educator_dashboard/:courseId/chapter/new`, connectEnsureLogin.ensureLoggedIn(), async (req, res) => {
+app.post(`/educator_dashboard/:courseId/chapter/new`, ensureEducator, async (req, res) => {
   try {
     console.log("BODY:", req.body);
     await Chapters.create({
@@ -266,7 +340,7 @@ app.post(`/educator_dashboard/:courseId/chapter/new`, connectEnsureLogin.ensureL
     console.log(err);
   }
 })
-app.get('/educator_dashboard/:courseId', connectEnsureLogin.ensureLoggedIn(), async (req, res) => {
+app.get('/educator_dashboard/:courseId', ensureEducator, async (req, res) => {
   try {
     const chapters = await Chapters.findAll({
       where: { courseId: req.params.courseId }
@@ -283,7 +357,7 @@ app.get('/educator_dashboard/:courseId', connectEnsureLogin.ensureLoggedIn(), as
   }
 });
 
-app.post(`/educator_dashboard/:chapterId/pages/new`,connectEnsureLogin.ensureLoggedIn(), async (req, res) => {
+app.post(`/educator_dashboard/:chapterId/pages/new`,ensureEducator, async (req, res) => {
   try {
     console.log("BODY:", req.body);
     await Pages.create({
@@ -298,7 +372,7 @@ app.post(`/educator_dashboard/:chapterId/pages/new`,connectEnsureLogin.ensureLog
   }
 });
 
-app.get(`/educator_dashboard/:chapterId/page/new`, connectEnsureLogin.ensureLoggedIn(), (req, res) => {
+app.get(`/educator_dashboard/:chapterId/page/new`, ensureEducator, (req, res) => {
   try {
     res.render('create_pages', {
       csrfToken: req.csrfToken(),
@@ -311,7 +385,7 @@ app.get(`/educator_dashboard/:chapterId/page/new`, connectEnsureLogin.ensureLogg
     console.log(err);
   }
 });
-app.get(`/educator_dashboard/:chapterId/pages`, connectEnsureLogin.ensureLoggedIn(), async (req, res) => {
+app.get(`/educator_dashboard/:chapterId/pages`, ensureEducator, async (req, res) => {
   try {
     const pages = await Pages.findAll({
       where: { chapterId: req.params.chapterId }
@@ -328,6 +402,89 @@ app.get(`/educator_dashboard/:chapterId/pages`, connectEnsureLogin.ensureLoggedI
   } catch (err) {
     console.log(err);
   }
-})
+});
+
+app.get("/student_dashboard/:courseId/preview", ensureStudent, async (req, res) => {
+  try {
+    const chapters = await Chapters.findAll({
+      where: { courseId: req.params.courseId }
+    });
+    res.render('student_dashboard_preview', {
+      csrfToken: req.csrfToken(),
+      title: 'Course Preview',
+      name: req.user.firstName + " " + req.user.lastName,
+      dashboard: '-Course Preview',
+      chapters: chapters
+    });
+  } catch (err) {
+    console.log(err);
+  }
+});
+
+app.post('/student_dashboard/courses/:courseId/enroll', ensureStudent, async (req, res) => {
+  const studentId = req.user.id;
+  const courseId = req.params.courseId;
+
+  try {
+    // Check if already enrolled
+    const existing = await Enrollments.findOne({
+      where: { studentId, courseId }
+    });
+
+    if (!existing) {
+      await Enrollments.create({ studentId, courseId });
+      req.flash("success", "Successfully enrolled!");
+    } else {
+      req.flash("info", "Already enrolled in this course.");
+    }
+
+    res.redirect('/student_dashboard');
+  } catch (err) {
+    console.error("Enrollment Error:", err);
+    res.status(500).send("Enrollment failed");
+  }
+});
+
+app.get("/course/:courseId/chapters", ensureStudent, async (req, res) => {
+  const { courseId } = req.params;
+  const studentId = req.user.id;
+
+  try {
+    // Check if user is enrolled
+    const enrolled = await Enrollments.findOne({
+      where: { courseId, studentId }
+    });
+
+    if (!enrolled) {
+      return res.status(403).send("Access denied. You are not enrolled in this course.");
+    }
+
+    // Fetch course and chapters
+    const course = await Courses.findByPk(courseId, {
+      include: [
+        { model: Chapters, order: [["order", "ASC"]] },
+        { model: User, attributes: ["firstName", "lastName"] }, // Educator
+      ]
+    });
+
+    if (!course) {
+      return res.status(404).send("Course not found");
+    }
+
+    res.render("student_course_chapters", {
+      csrfToken: req.csrfToken(),
+      course,
+      chapters: course.Chapters,
+      educator: course.User,
+      name: req.user.firstName + " " + req.user.lastName,
+      title: 'Chapters',
+      dashboard: '-Chapters',
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Something went wrong");
+  }
+});
 
 module.exports = app;
