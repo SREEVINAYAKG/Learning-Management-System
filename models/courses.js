@@ -24,6 +24,11 @@ module.exports = (sequelize, DataTypes) => {
       foreignKey: 'courseId',
     });
 
+    Courses.hasMany(models.Enrollments, {
+       foreignKey: 'courseId' ,
+       as: 'CourseEnrollments',
+      });
+
       // define association here
     }
   }

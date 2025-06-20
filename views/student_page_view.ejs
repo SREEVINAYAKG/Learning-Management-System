@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="<%=csrfToken%>" />
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <title><%=title%></title>
+</head>
+<body>
+    <div class="grid grid-cols-6 grid-rows-15">
+    <div class="col-start-1 col-span-6">
+        <%- include('header.ejs')%>
+    </div>
+    <div class="col-start-1 col-span-6 row-start-2">
+      <h2 class="text-2xl font-semibold pl-2 text-gray-600">Welcome <%=name%></h2>
+      <a href="/student_dashboard" class="px-3 text-blue-800">Dashboard</a>
+  <a href="/course/<%= courseId %>/chapters" class="text-blue-800 ">
+    Back to Chapters
+  </a>
+    </div>
+
+    <div class='col-start-1 col-span-6 row-start-4 row-span-1'>
+    <h2 class="text-xl font-bold text-center"><%= pageTitle %></h2>
+    </div>
+     <div class='col-start-2 col-span-4 row-start-5 row-span-5 overflow-hidden break-words'>
+    <p class="mt-4"><%= pageContent %></p>
+     </div>
+
+
+
+<div class='col-start-3 col-span-2 row-start-12 row-span-2'>
+    <% if (!isCompleted) { %>
+<form action="/course/<%= courseId %>/chapter/<%= chapterId %>/page/<%= pageId %>/complete?pageIndex=<%= currentIndex %>" method="POST" class="text-center">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <button class="bg-green-500 text-white p-2 rounded hover:cursor-pointer hover:bg-green-600">Mark as Complete</button>
+</form>
+<% } %>
+<p class="text-sm text-green-600 mt-2 text-center">
+  <% if (isCompleted) { %> ✅ Page marked as completed <% } %>
+</p>
+</div>
+<div class="col-start-1 col-span-1 row-start-12 row-span-2 text-end">
+  <% if (currentIndex > 0) { %>
+    <a href="/course/<%= courseId %>/chapter/<%= chapterId %>/page/<%= currentIndex - 1 %>" class="bg-gray-400 text-white font-bold p-2 rounded hover:bg-gray-600">⬅ Prev</a>
+  <% } %>
+  </div>
+  <div class="col-start-6 col-span-1 row-start-12 row-span-2 ">
+  <% if (currentIndex < totalPages - 1) { %>
+    <a href="/course/<%= courseId %>/chapter/<%= chapterId %>/page/<%= currentIndex + 1 %>" class="bg-blue-400 text-white font-bold p-2 rounded hover:bg-blue-500">Next ➡</a>
+  <% } %>
+  </div>
+
+
+     <div class="col-start-6 row-start-2 col-span-1 text-center px-2">
+        <a href="/signout" class="text-red-500">Sign out</a>
+      </div>
+        </div>
+    </body>
+</html>
+
+

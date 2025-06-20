@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="<%=csrfToken%>" />
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <title><%=title%></title>
+</head>
+<body>
+    <div class="grid grid-cols-6 grid-rows-20">
+    <div class="col-start-1 col-span-6">
+        <%- include('header.ejs')%>
+    </div>
+    <div class="col-start-1 col-span-6 row-start-2">
+      <h2 class="text-2xl font-semibold pl-2 text-gray-600">Welcome <%=name%></h2>
+    <a href="/educator_dashboard" class="px-3 text-blue-800">Dashboard</a>
+    </div>
+
+      <div class='col-start-1 col-span-6 row-start-4'>
+        <h1 class="text-3xl font-semibold text-gray-600 text-center">Your Course Reports</h1>
+      </div>
+
+  <div class="col-start-2 col-span-4 row-start-6 row-span-6 ">
+  <table class="min-w-full mt-6 divide-x divide-black border text-left">
+  <thead class="bg-yellow-200">
+    <tr>
+      <th class="px-4 py-2 border-r border-black">Course Name</th>
+      <th class="px-4 py-2">Enrolled Students</th>
+    </tr>
+  </thead>
+  <tbody>
+    <% reports.forEach(report => { %>
+      <tr class="border-t">
+        <td class="px-4 py-2 border-r border-black"><%= report.courseName %></td>
+        <td class="px-4 py-2"><%= report.studentCount %></td>
+      </tr>
+    <% }) %>
+  </tbody>
+</table>
+</div>
+
+
+     <div class="col-start-6 row-start-2 col-span-1 text-center px-2">
+        <a href="/signout" class="text-red-500">Sign out</a>
+      </div>
+
+        </div>
+        
+  
+    </body>
+</html>

@@ -25,10 +25,19 @@
   <div class="col-start-1 col-span-6 row-start-6 row-span-3 px-10 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
   <%if (Array.isArray(chapters) && chapters.length){%>
   <% chapters.forEach(chapter => { %>
-    <div class="border border-gray-300 p-4 rounded-lg shadow bg-white">
+   <% const progress = chapterProgress.find(p => p.chapterId === chapter.id);%>
+    <div class="border border-gray-300 p-4 rounded-lg shadow bg-white h-fit">
       <h3 class="text-lg font-bold text-blue-800 mb-2"><%= chapter.chapterName %></h3>
       <p class="text-gray-700 mb-2"><%= chapter.chapterDescription %></p>
-      <a href="#"><button class="bg-blue-400 text-white font-bold p-2 m-2 rounded hover:cursor-pointer hover:bg-blue-600" >View pages</button></a>
+           <% if (progress.totalPages>0 && progress) { %>
+      <p class="text-sm text-green-600">
+        ✅ <%= progress.completedPages %> / <%= progress.totalPages %> pages completed 
+        (<%= progress.completionPercentage %>%)
+      </p>
+    <% } else { %>
+      <p class="text-sm text-red-600">No pages available</p>
+    <% } %>
+      <a href="/course/<%= course.id %>/chapter/<%= chapter.id %>/page/0"><button class="bg-blue-400 text-white font-bold p-2 m-2 rounded hover:cursor-pointer hover:bg-blue-600" >View pages</button></a>
     </div>
   <% }) %>
   <%}else{%>

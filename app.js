@@ -13,10 +13,13 @@ const bcrypt = require('bcrypt');
 const saltRounds = 10;
 
 
-const {User,Courses,Chapters,Pages,Enrollments} = require('./models');
+const {User,Courses,Chapters,Pages,Enrollments,pageCompletion} = require('./models');
 app.set("view engine","ejs");
 
-app.use(cookieParser('shh! some secret thing'))
+app.use(cookieParser('shh! some secret thing'));
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
+
 
 app.use(session({
   secret:"my-super-secret-key-21728176152478952",
@@ -29,8 +32,9 @@ app.use(session({
 
 app.use(bodyParser.urlencoded({ extended: false }));
 
+if (process.env.NODE_ENV !== 'test') {
 app.use(csrf("this_should_be_32_character_long", ["POST", "PUT", "DELETE"]));
-
+};
 
 app.use(passport.initialize());
 app.use(passport.session());
@@ -42,18 +46,20 @@ app.use(function(request, response, next) {
 });
 
 const { Op } = require('sequelize');
+const { Sequelize } = require('sequelize');
 
 
 //loaclStratergy
 
 passport.use('local', new localStrategy(
   { usernameField: 'email' },
-  function(email, password, done) {
+   function(email, password, done) {
     User.findOne({where:{ email: email }}).then(async(user)=>{
       if (!user) {
         return done(null, false, { message: 'User with given email not found,sign up first.' });
       }
-      if(user.password!==password){
+      const match = await bcrypt.compare(password,user.password)
+      if(!match){
         return done(null, false, { message: 'Incorrect  password.' });
       }
       if(user.role==='educator'){
@@ -123,13 +129,14 @@ app.get("/signup",(request,response)=>{
 });
 
 app.post("/users",async(request,response)=>{
+  const hashedPassword = await bcrypt.hash(request.body.password, saltRounds);
   try{
     const user = await User.create({
       role:request.body.role,
       firstName:request.body.firstName,
       lastName:request.body.lastName,
       email:request.body.email,
-      password:request.body.password
+      password:hashedPassword
     });
     request.login(user,(error)=>{
       if(error){
@@ -312,6 +319,42 @@ app.get("/signout", (req, res, next) => {
 });
 
 
+app.get('/educator_dashboard/view_report', ensureEducator, async (req, res) => {
+  try {
+    const educatorId = req.user.id;
+    const reports = await Courses.findAll({
+      where: { userId: educatorId },
+      attributes: [
+        'id',
+        'courseName',
+        [Sequelize.fn('COUNT', Sequelize.col('CourseEnrollments.id')), 'studentCount']
+      ],
+      include: [
+        {
+          model: Enrollments,
+          as: 'CourseEnrollments',
+          attributes: []
+        }
+      ],
+      group: ['Courses.id'],
+      raw: true
+    });
+
+    res.render('educator_dashboard_reports', {
+      title: 'Course Reports',
+      dashboard:'Reports',
+      name: req.user.firstName + ' ' + req.user.lastName,
+      reports,
+      csrfToken: req.csrfToken()
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Error generating report");
+  }
+});
+
+
 app.get(`/educator_dashboard/:courseId/chapter/new`, ensureEducator, (req, res) => {
   try {
     res.render('new_chapter', {
@@ -350,14 +393,15 @@ app.get('/educator_dashboard/:courseId', ensureEducator, async (req, res) => {
       title: 'Course Chapters',
       name: req.user.firstName + " " + req.user.lastName,
       dashboard: '-Course Chapters',
-      chapters: chapters
+      chapters: chapters,
+      courseId:req.params.courseId
     });
   } catch (err) {
     console.log(err);
   }
 });
 
-app.post(`/educator_dashboard/:chapterId/pages/new`,ensureEducator, async (req, res) => {
+app.post(`/educator_dashboard/:courseId/:chapterId/pages/new`,ensureEducator, async (req, res) => {
   try {
     console.log("BODY:", req.body);
     await Pages.create({
@@ -365,30 +409,33 @@ app.post(`/educator_dashboard/:chapterId/pages/new`,ensureEducator, async (req, 
       pageCotent: req.body.page_content, //typo error content in db table.
       chapterId: req.params.chapterId
     });
-    res.redirect(`/educator_dashboard/${req.params.chapterId}/pages`);
+    res.redirect(`/educator_dashboard/${req.params.courseId}/${req.params.chapterId}/pages`);
   } catch (err) {
     // console.log("BODY:", req.body);
     console.log(err);
   }
 });
 
-app.get(`/educator_dashboard/:chapterId/page/new`, ensureEducator, (req, res) => {
+app.get(`/educator_dashboard/:courseId/:chapterId/page/new`, ensureEducator, (req, res) => {
   try {
     res.render('create_pages', {
       csrfToken: req.csrfToken(),
       title: 'Chapter Pages',
       name: req.user.firstName + " " + req.user.lastName,
       dashboard: '-Chapter Pages',
-      chapterId: req.params.chapterId
+      chapterId: req.params.chapterId,
+      courseId:req.params.courseId
     });
   } catch (err) {
     console.log(err);
   }
 });
-app.get(`/educator_dashboard/:chapterId/pages`, ensureEducator, async (req, res) => {
+app.get(`/educator_dashboard/:courseId/:chapterId/pages`, ensureEducator, async (req, res) => {
   try {
+    const {courseId, chapterId} = req.params;
     const pages = await Pages.findAll({
-      where: { chapterId: req.params.chapterId }
+      where: { chapterId: chapterId },
+      order: [['id', 'ASC']],
     });
 
     res.render('educator_dashboard_pages', {
@@ -396,12 +443,33 @@ app.get(`/educator_dashboard/:chapterId/pages`, ensureEducator, async (req, res)
       title: 'Chapter Pages',
       name: req.user.firstName + " " + req.user.lastName,
       dashboard: '-Chapter Pages',
-      pages: pages
+      pages: pages,
+      courseId: courseId,
+      chapterId
+      
 
     });
   } catch (err) {
     console.log(err);
   }
+});
+
+
+app.get('/educator_dashboard/:courseId/:chapterId/pages/page/:pageId/edit', ensureEducator, async (req, res) => {
+  const { courseId,chapterId,pageId } = req.params;
+
+  const page = await Pages.findByPk(pageId);
+  if (!page) return res.status(404).send("Page not found");
+
+  res.render('edit_page', {
+    csrfToken: req.csrfToken(),
+    title: 'Edit Page',
+    page,
+    name: req.user.firstName + " " + req.user.lastName,
+    dashboard: '-Edit Page',
+    chapterId: chapterId,
+    courseId: courseId
+  });
 });
 
 app.get("/student_dashboard/:courseId/preview", ensureStudent, async (req, res) => {
@@ -471,6 +539,31 @@ app.get("/course/:courseId/chapters", ensureStudent, async (req, res) => {
       return res.status(404).send("Course not found");
     }
 
+    // Get all page completions by this student for this course
+const completions = await pageCompletion.findAll({
+  where: { userId: studentId },
+  attributes: ['pageId'],
+  raw: true,
+});
+
+// Convert to Set for fast lookup
+const completedPageIds = new Set(completions.map(c => c.pageId));
+
+// For each chapter, fetch its pages and compute progress
+const chapterProgress = await Promise.all(
+  course.Chapters.map(async (chapter) => {
+    const pages = await Pages.findAll({ where: { chapterId: chapter.id } });
+    const total = pages.length;
+    const completed = pages.filter(p => completedPageIds.has(p.id)).length;
+    return {
+      chapterId: chapter.id,
+      totalPages: total,
+      completedPages: completed,
+      completionPercentage: total ? Math.round((completed / total) * 100) : 0
+    };
+  })
+);
+
     res.render("student_course_chapters", {
       csrfToken: req.csrfToken(),
       course,
@@ -479,6 +572,7 @@ app.get("/course/:courseId/chapters", ensureStudent, async (req, res) => {
       name: req.user.firstName + " " + req.user.lastName,
       title: 'Chapters',
       dashboard: '-Chapters',
+      chapterProgress
     });
 
   } catch (err) {
@@ -486,5 +580,171 @@ app.get("/course/:courseId/chapters", ensureStudent, async (req, res) => {
     res.status(500).send("Something went wrong");
   }
 });
+
+app.get('/course/:courseId/chapter/:chapterId/page/:pageIndex',ensureStudent, async (req, res) => {
+  const { courseId, chapterId, pageIndex } = req.params;
+  const userId = req.user.id;
+
+  try {
+    // Ensure the user is enrolled
+    const enrollment = await Enrollments.findOne({ where: { studentId: userId, courseId } });
+    if (!enrollment) return res.status(403).send("Access Denied");
+
+    // Fetch chapter + pages
+    const chapter = await Chapters.findByPk(chapterId, {
+      include: [{ model: Pages, separate: true,order: [['id', 'ASC']] }]
+    });
+
+    if (!chapter || !chapter.Pages || chapter.Pages.length === 0)
+      return res.status(404).send("No pages found");
+
+    const pages = chapter.Pages;
+    const index = parseInt(pageIndex);
+
+    if (index < 0 || index >= pages.length)
+      return res.status(400).send("Invalid page index");
+
+    const currentPage = pages[index];
+
+    // Check if this page is marked complete
+    const isCompleted = await pageCompletion.findOne({
+      where: { userId, pageId: currentPage.id }
+    });
+
+    res.render('student_page_view', {
+      csrfToken: req.csrfToken(),
+      title:'Page View',
+      pageTitle: currentPage.pageTitle,
+      pageContent: currentPage.pageCotent,
+      currentIndex: index,
+      chapterId,
+      courseId,
+      totalPages: pages.length,
+      pageId: currentPage.id,
+      isCompleted: !!isCompleted,
+      name: req.user.firstName + " " + req.user.lastName,
+      dashboard: '-pages',
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Internal Server Error");
+  }
+});
+
+app.post('/course/:courseId/chapter/:chapterId/page/:pageId/complete', ensureStudent,async (req, res) => {
+  const { pageId ,courseId, chapterId} = req.params;
+  const userId = req.user.id;
+  const pageIndex = req.query.pageIndex || 0;
+
+  try {
+    const [record, created] = await pageCompletion.findOrCreate({
+      where: { userId, pageId }
+    });
+
+    res.redirect(`/course/${courseId}/chapter/${chapterId}/page/${pageIndex}`); // stay on same page
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Error marking as complete");
+  }
+});
+
+
+app.post('/educator_dashboard/:courseId/:chapterId/pages/page/:pageId/edit', ensureEducator, async (req, res) => {
+  const { courseId, chapterId, pageId } = req.params;
+  const { pageTitle, pageCotent } = req.body;
+
+  try {
+    const page = await Pages.findByPk(pageId);
+    if (!page) return res.status(404).send("Page not found");
+
+    await page.update({ pageTitle, pageCotent });
+
+    // Get the chapter to extract courseId
+    const chapter = await Chapters.findByPk(page.chapterId);
+    if (!chapter) return res.status(404).send("Chapter not found");
+
+    res.redirect(`/educator_dashboard/${courseId}/${chapterId}/pages`);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Error updating page");
+  }
+});
+
+app.get('/educator_dashboard/change_password', ensureEducator, (req, res) => {
+  res.render('educator_change_password', {
+    csrfToken: req.csrfToken(),
+    name: req.user.firstName + ' ' + req.user.lastName,
+    title: 'Change Password',
+    dashboard: '-Change Password'
+  });
+});
+app.get('/student_dashboard/change_password', ensureStudent, (req, res) => {
+  res.render('student_change_password', {
+    csrfToken: req.csrfToken(),
+    name: req.user.firstName + ' ' + req.user.lastName,
+    title: 'Change Password',
+    dashboard: '-Change Password'
+  });
+});
+
+app.post('/educator_dashboard/change_password',ensureEducator,async (req, res) => {
+  const { currentPassword, newPassword, confirmPassword } = req.body;
+
+  try {
+    const user = await User.findByPk(req.user.id);
+    if (!user) return res.status(404).send("User not found");
+
+    const match = await bcrypt.compare(currentPassword, user.password);
+    if (!match) {
+      req.flash('error', 'Current password is incorrect');
+      return res.redirect('/educator_dashboard/change_password');
+    }
+
+    if (newPassword !== confirmPassword) {
+      req.flash('error', 'New passwords do not match');
+      return res.redirect('/educator_dashboard/change_password');
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+    await user.update({ password: hashedPassword });
+
+    req.flash('success', 'Password changed successfully');
+    res.redirect('/signout');
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Error updating password");
+  }
+});
+app.post('/student_dashboard/change_password',ensureStudent,async (req, res) => {
+  const { currentPassword, newPassword, confirmPassword } = req.body;
+
+  try {
+    const user = await User.findByPk(req.user.id);
+    if (!user) return res.status(404).send("User not found");
+
+    const match = await bcrypt.compare(currentPassword, user.password);
+    if (!match) {
+      req.flash('error', 'Current password is incorrect');
+      return res.redirect('/student_dashboard/change_password');
+    }
+
+    if (newPassword !== confirmPassword) {
+      req.flash('error', 'New passwords do not match');
+      return res.redirect('/student_dashboard/change_password');
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+    await user.update({ password: hashedPassword });
+
+    req.flash('success', 'Password changed successfully');
+    res.redirect('/signout');
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Error updating password");
+  }
+});
+
+
 
 module.exports = app;

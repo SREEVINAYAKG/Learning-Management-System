@@ -20,6 +20,12 @@ module.exports = (sequelize, DataTypes) => {
       foreignKey: 'studentId',
       as: 'EnrolledCourses',
     });
+
+      User.belongsToMany(models.Pages, {
+        through: models.pageCompletion,
+        foreignKey: 'userId',
+        as: 'CompletedPages',
+      });
       // define association here
     }
   }

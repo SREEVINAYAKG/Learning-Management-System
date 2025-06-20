@@ -1,4 +1,7 @@
 const db = require('../models');
+const app = require('../app');
+const request = require('supertest');
+const cheerio = require("cheerio");
 
 describe('first test suite',()=>{
     test('demo',()=>{
@@ -8,6 +11,7 @@ describe('first test suite',()=>{
 
 
 const { sequelize, User } = require('../models');
+let agent;
 
 beforeAll(async () => {
   await sequelize.sync({ force: true }); // reset test DB
@@ -80,4 +84,42 @@ describe('User Model', () => {
 
 
 
+// describe('Authentication Routes', () => {
+//   test('Signup new user', async () => {
+//     const res = await request(app)
+//       .post('/users')
+//       .send({
+//         role: 'student',
+//         firstName: 'Test',
+//         lastName: 'User',
+//         email: 'testuser@example.com',
+//         password: 'testpass123'
+//       });
+      
+//     console.log('Signup Error Body:', res.text);
+//     expect(res.statusCode).toBe(302); // Redirect after signup
+//   });
+
+//   test('Login with correct credentials', async () => {
+//     const res = await request(app)
+//       .post('/session')
+//       .send({
+//         email: 'testuser@example.com',
+//         password: 'testpass123'
+//       });
+
+//     expect(res.statusCode).toBe(302);
+//   });
+
+//   test('Login with wrong password fails', async () => {
+//     const res = await request(app)
+//       .post('/session')
+//       .send({
+//         email: 'testuser@example.com',
+//         password: 'wrongpass'
+//       });
+
+//     expect(res.statusCode).toBe(302);
+//   });
+// });
 

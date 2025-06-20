@@ -20,13 +20,13 @@
         <a href="/signout" class="text-red-500">Sign out</a>
     </div>
          <div class="col-start-2 row-start-3 col-span-4 row-span-8">
-        <form action="/educator_dashboard/<%=courseId%>/<%= chapterId %>/pages/new" method="POST">
+        <form action="/educator_dashboard/<%= courseId %>/<%= chapterId %>/pages/page/<%= page.id %>/edit" method="POST">
             <input type="hidden" name="_csrf" value="<%=csrfToken%>">
-            <label for="page_title">Page Title</label>
-            <input type="text" placeholder='enter page title' name="page_title" class="border border-gray-300 text-gray-900 rounded w-full p-2"><br><br>
-            <label for="page_content">Page Content</label>
-            <textarea name="page_content" placeholder='enter page content' class="border border-gray-300 text-gray-900 rounded w-full h-32 p-2"></textarea><br><br>
-            <button type="submit" class="p-2 bg-yellow-200 border rounded hover:bg-yellow-400 cursor-pointer">Submit</button>
+            <label for="pageTitle">Page Title</label>
+            <input name="pageTitle" class="border border-gray-300 text-gray-900 rounded w-full p-2" value="<%= page.pageTitle %>" required><br><br>
+            <label for="pageCotent">Page Content</label>
+            <textarea name="pageCotent" placeholder='enter page content' class="border border-gray-300 text-gray-900 rounded w-full h-32 p-2"><%= page.pageCotent %></textarea><br><br>
+            <button type="submit" class="p-2 bg-yellow-200 border rounded hover:bg-yellow-400 cursor-pointer">Update</button>
         </form>
 
       </div>
