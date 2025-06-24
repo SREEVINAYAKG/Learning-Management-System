@@ -27,3 +27,11 @@ A full-stack web application that allows educators to create courses with chapte
 | Database        | PostgreSQL, Sequelize ORM           |
 | Authentication  | Passport.js, bcrypt                 |
 | Middleware      | express-session, connect-flash, CSRF protection |
+
+## 📸 Screenshots
+
+### 👨‍🏫 Educator Dashboard
+![Educator Dashboard](assets/Educator_dashboard.png)
+
+### 🧑‍🎓 Student Dashboard
+![Student Course View](assets/Student_dashboard.png)
